@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PriceLens | Universal E-Commerce Price Scraper & Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Chart.js for Price vs Time Visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="background-glows">
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+    <div class="glow glow-3"></div>
+  </div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>PriceLens <span class="badge-go">Go + SQLite</span></h1>
+          <p>Real-time Price Scraper, History Analytics & Scheduled Cron Engine</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="platform-pill active">
+          <span class="dot"></span> Amazon India
+        </span>
+        <span class="platform-pill sqlite">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+          SQLite Storage
+        </span>
+        <!-- User Auth Header Pill -->
+        <div id="auth-actions" class="auth-actions">
+          <button id="open-auth-btn" class="auth-header-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            Sign In / Register
+          </button>
+          <div id="user-profile-badge" class="user-profile-badge" style="display: none;">
+            <div id="user-avatar-initial" class="user-avatar-circle">U</div>
+            <span id="user-name-display" class="user-name-text">User</span>
+            <button id="logout-btn" class="logout-btn" title="Sign Out">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Scraper Form -->
+    <main class="scraper-card">
+      <div class="input-wrapper">
+        <div class="input-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </div>
+        <input 
+          type="url" 
+          id="url-input" 
+          placeholder="Paste Amazon India product URL (e.g. https://www.amazon.in/dp/...)" 
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <button id="scrape-btn" class="scrape-btn">
+          <span class="btn-text">Scrape Price</span>
+          <span class="btn-loader" style="display: none;">
+            <svg class="spinner" viewBox="0 0 50 50">
+              <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+            </svg>
+          </span>
+        </button>
+      </div>
+
+      <!-- Quick Test Suggestions -->
+      <div class="quick-samples">
+        <span class="sample-label">Quick test:</span>
+        <button class="sample-chip" data-url="https://www.amazon.in/Casio-Analog-Digital-Black-Watch-GA-2100-1A1DR-G987/dp/B07YCTCMFK/">Casio G-Shock GA-2100</button>
+      </div>
+
+      <!-- Alert / Error message container -->
+      <div id="alert-box" class="alert-box" style="display: none;">
+        <div class="alert-icon">⚠️</div>
+        <div id="alert-text" class="alert-text"></div>
+      </div>
+    </main>
+
+    <!-- Results Section -->
+    <section id="result-section" class="result-section" style="display: none;">
+      <div class="result-header">
+        <div class="result-tabs">
+          <button class="tab-btn active" data-tab="card-view">Product Preview</button>
+          <button class="tab-btn" data-tab="graph-view" id="graph-tab-btn">
+            📈 Price vs Time <span id="history-badge" class="tab-badge">0</span>
+          </button>
+          <button class="tab-btn" data-tab="json-view">Raw JSON</button>
+        </div>
+        <div class="result-meta">
+          <span id="latency-tag" class="latency-tag">⚡ 0ms</span>
+          <button id="copy-json-btn" class="copy-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Copy JSON
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 1: Visual Card -->
+      <div id="card-view" class="tab-content active">
+        <div class="product-card">
+          <div class="product-media">
+            <img id="product-img" src="" alt="Product Image" loading="lazy">
+          </div>
+          <div class="product-details">
+            <div class="product-meta-row">
+              <span id="product-platform" class="platform-badge">Amazon India</span>
+              <span id="product-stock" class="stock-badge in-stock">In Stock</span>
+              <span id="product-asin" class="asin-badge">ASIN: --</span>
+              <span id="product-origin-pill" class="origin-pill live">🌐 Fresh Scraped</span>
+              <span id="product-subscribers-pill" class="subscribers-pill" style="display: none;">👥 1 Subscriber</span>
+            </div>
+
+            <h2 id="product-title" class="product-title">--</h2>
+
+            <div class="rating-row" id="rating-row" style="display: none;">
+              <span class="stars-icon">★</span>
+              <span id="product-rating" class="rating-val">--</span>
+              <span id="product-reviews" class="review-count">--</span>
+            </div>
+
+            <div class="price-box">
+              <div class="price-main">
+                <span id="product-price" class="current-price">₹0</span>
+                <span id="product-mrp" class="mrp-price" style="display: none;">₹0</span>
+              </div>
+              <div id="product-discount" class="discount-badge" style="display: none;">-0%</div>
+            </div>
+
+            <!-- User Tracking Status Box -->
+            <div id="user-track-status-box" class="user-track-status-box" style="display: none;">
+              <div class="user-track-info">
+                <span class="user-track-indicator">✓ In Your Tracked List</span>
+                <span id="user-track-interval-text" class="user-track-sub">Your Interval: 24h</span>
+              </div>
+              <button id="untrack-card-btn" class="untrack-card-btn" type="button">Remove from Wishlist</button>
+            </div>
+
+            <!-- Lowest Shared Cron Notice -->
+            <div id="lowest-cron-banner" class="lowest-cron-banner" style="display: none;">
+              <span class="banner-icon">⚡</span>
+              <span id="lowest-cron-text">Shared Cron Active: Running at lowest interval (Every 6 hrs) across subscribers.</span>
+            </div>
+
+            <!-- Schedule Cron Job Box -->
+            <div class="track-box">
+              <div class="track-box-header">
+                <div class="track-label-group">
+                  <span class="clock-icon">🕒</span>
+                  <strong>Automated Price Tracking</strong>
+                </div>
+                <span id="job-status-pill" class="job-status-pill" style="display: none;">Not Scheduled</span>
+              </div>
+
+              <div class="track-controls">
+                <div class="select-wrapper">
+                  <label for="interval-select">Cron Frequency:</label>
+                  <select id="interval-select" class="interval-select">
+                    <option value="every 6hrs">every 6hrs</option>
+                    <option value="every 12 hrs">every 12 hrs</option>
+                    <option value="every 24 hrs" selected>every 24 hrs</option>
+                    <option value="every 2 days">every 2 days</option>
+                    <option value="every 1 week">every 1 week</option>
+                    <option value="every 1 month">every 1 month</option>
+                  </select>
+                </div>
+                <button id="track-btn" class="track-btn">
+                  <span class="track-btn-text">Add to Wishlist & Track</span>
+                </button>
+              </div>
+              <div id="track-feedback" class="track-feedback" style="display: none;"></div>
+            </div>
+
+            <div class="product-actions">
+              <a id="product-link" href="#" target="_blank" rel="noopener noreferrer" class="visit-btn">
+                Visit Product on Amazon ↗
+              </a>
+              <span id="scraped-time" class="timestamp-text">Scraped just now</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Price vs Time Graph -->
+      <div id="graph-view" class="tab-content">
+        <div class="graph-card">
+          <!-- Summary Metrics Cards -->
+          <div class="stats-row">
+            <div class="stat-card">
+              <span class="stat-label">Lowest Recorded</span>
+              <span id="stat-lowest" class="stat-value text-emerald">₹0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Highest Recorded</span>
+              <span id="stat-highest" class="stat-value text-rose">₹0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Average Price</span>
+              <span id="stat-avg" class="stat-value text-indigo">₹0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Data Snapshots</span>
+              <span id="stat-count" class="stat-value">0</span>
+            </div>
+          </div>
+
+          <!-- Chart Area -->
+          <div class="chart-container-box">
+            <div class="chart-wrapper">
+              <canvas id="priceChart"></canvas>
+            </div>
+          </div>
+
+          <div class="graph-footer">
+            <span class="footer-note">💡 SQLite records a snapshot every time this product is scraped or checked via cron.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: JSON View -->
+      <div id="json-view" class="tab-content">
+        <pre><code id="json-code"></code></pre>
+      </div>
+    </section>
+
+    <!-- Tracked Products / Wishlist Dashboard Section -->
+    <section class="tracked-section">
+      <div class="tracked-header">
+        <div class="tracked-title-group">
+          <h3>My Tracked Products & Wishlist (<span id="tracked-badge">0</span>)</h3>
+          <p class="tracked-subtitle">Your personal wishlist. Active cron runs at the lowest interval among all subscribers.</p>
+        </div>
+        <button id="refresh-tracked-btn" class="refresh-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6"></path>
+            <path d="M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          Refresh Watchlist
+        </button>
+      </div>
+
+      <!-- Auth Required Callout (Shown when logged out) -->
+      <div id="auth-required-banner" class="auth-required-banner" style="display: none;">
+        <div class="auth-banner-content">
+          <div class="auth-banner-icon">🔒</div>
+          <div class="auth-banner-text">
+            <strong>Sign in to view your tracked products</strong>
+            <p>Each user gets a private wishlist. When multiple users track the same item, deduplicated data is fetched and the lowest cron interval is automatically shared.</p>
+          </div>
+          <button id="banner-login-btn" class="banner-login-btn" type="button">Sign In / Register</button>
+        </div>
+      </div>
+
+      <div id="tracked-list" class="tracked-list">
+        <div class="empty-tracked">
+          <p>No automated cron jobs active in your watchlist yet. Paste an Amazon India link above and click <strong>Add to Wishlist & Track</strong>!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Developer API Reference -->
+    <section class="docs-section">
+      <div class="docs-header">
+        <div class="docs-title-group">
+          <h3>How to consume this API</h3>
+          <p class="docs-subtitle">Integrate live scraping, cron scheduling & history into your apps</p>
+        </div>
+        <span class="badge-rest">REST Endpoints</span>
+      </div>
+
+      <div class="docs-grid">
+        <!-- cURL Card -->
+        <div class="doc-card">
+          <div class="doc-card-header">
+            <div class="terminal-dots">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+            </div>
+            <span class="lang-tag">cURL (Schedule Cron)</span>
+            <button class="snippet-copy-btn" data-snippet="curl">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <pre><code id="snippet-curl"><span class="token-cmd">curl</span> -X POST http://localhost:8080/api/track \
+  -H <span class="token-str">"Authorization: Bearer YOUR_TOKEN"</span> \
+  -H <span class="token-str">"Content-Type: application/json"</span> \
+  -d <span class="token-str">'{"url":"https://www.amazon.in/dp/B07YCTCMFK","interval":"every 6hrs"}'</span></code></pre>
+        </div>
+
+        <!-- JavaScript / Fetch Card -->
+        <div class="doc-card">
+          <div class="doc-card-header">
+            <div class="terminal-dots">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+            </div>
+            <span class="lang-tag">JavaScript (Fetch Tracked)</span>
+            <button class="snippet-copy-btn" data-snippet="js">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <pre><code id="snippet-js"><span class="token-kw">const</span> res = <span class="token-kw">await</span> <span class="token-fn">fetch</span>(<span class="token-str">"http://localhost:8080/api/tracked"</span>, {
+  headers: { <span class="token-str">"Authorization"</span>: <span class="token-str">`Bearer ${token}`</span> }
+});
+<span class="token-kw">const</span> { items } = <span class="token-kw">await</span> res.<span class="token-fn">json</span>();
+console.<span class="token-fn">log</span>(<span class="token-str">`Tracked items: ${items.length}`</span>);
+console.<span class="token-fn">log</span>(items.map(i => ({ title: i.title, effective_cron: i.effective_interval_label })));</code></pre>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Auth Modal -->
+  <div id="auth-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="auth-tabs">
+          <button type="button" id="tab-login" class="auth-tab-btn active">Sign In</button>
+          <button type="button" id="tab-register" class="auth-tab-btn">Create Account</button>
+        </div>
+        <button type="button" id="close-auth-modal" class="modal-close-btn" aria-label="Close modal">&times;</button>
+      </div>
+      <form id="auth-form" class="auth-form">
+        <div class="auth-field">
+          <label for="auth-username">Username</label>
+          <input type="text" id="auth-username" placeholder="Choose a username (e.g. alice)" required autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <label for="auth-password">Password</label>
+          <input type="password" id="auth-password" placeholder="Enter password (min 6 characters)" required autocomplete="current-password">
+        </div>
+        <div id="auth-error-msg" class="auth-error-msg" style="display: none;"></div>
+        <button type="submit" id="auth-submit-btn" class="auth-submit-btn">
+          <span class="auth-btn-text">Sign In</span>
+          <span class="auth-btn-loader" style="display: none;">
+            <svg class="spinner" viewBox="0 0 50 50">
+              <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+            </svg>
+          </span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+# Binaries & Compiled Executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+bin/
+dist/
+build/
+/ecom-server
+/server
+
+# SQLite Databases & WAL/SHM files
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+tracker.db*
+
+# Logs & Temporary files
+*.log
+*.tmp
+scratch/
+tmp/
+
+# Test coverage
+*.out
+coverage.html
+
+# Environment files
+.env
+.env.local
+
+# OS Artifacts
+.DS_Store
+Thumbs.db
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.swp
+*~
